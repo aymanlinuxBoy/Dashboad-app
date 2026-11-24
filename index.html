@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Run:ai · Workload overview</title>
+<style>
+:root{--bg:#F0F0F0;--panel:#FFFFFF;--line:#E3E6EB;--ink:#1F2A37;--muted:#5B6575;--border:#C9D0DA;--input:#FFFFFF;--accent:#00B2E3;--on-accent:#FFFFFF;--ok:#1E8E3E;--done:#0A8CB5;--warn:#C2570C;--err:#D9342B;--chip:#EEF1F5;--shadow:rgba(20,30,50,.07);color-scheme:light;font-family:system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0B1220;--panel:#121B2B;--line:#26334A;--ink:#E6EDF5;--muted:#9AA8BA;--border:#34445E;--input:#0E1727;--accent:#00B2E3;--on-accent:#0B1220;--ok:#3CC765;--done:#5CC8F0;--warn:#FFB45C;--err:#FF6B6B;--chip:#1A2638;--shadow:rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B1220;--panel:#121B2B;--line:#26334A;--ink:#E6EDF5;--muted:#9AA8BA;--border:#34445E;--input:#0E1727;--accent:#00B2E3;--on-accent:#0B1220;--ok:#3CC765;--done:#5CC8F0;--warn:#FFB45C;--err:#FF6B6B;--chip:#1A2638;--shadow:rgba(0,0,0,.35);color-scheme:dark}
+:root[data-theme="light"]{--bg:#F0F0F0;--panel:#FFFFFF;--line:#E3E6EB;--ink:#1F2A37;--muted:#5B6575;--border:#C9D0DA;--input:#FFFFFF;--accent:#00B2E3;--on-accent:#FFFFFF;--ok:#1E8E3E;--done:#0A8CB5;--warn:#C2570C;--err:#D9342B;--chip:#EEF1F5;--shadow:rgba(20,30,50,.07);color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+main{max-width:1180px;margin:auto;padding:42px 24px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.controls-top{display:flex;gap:10px;align-items:center}
+.brand{font-weight:750;color:var(--accent);letter-spacing:.08em}
+h1{font-size:36px;margin:32px 0 8px}
+h2{font-size:18px;margin:0 0 4px}
+p,.muted{color:var(--muted);font-size:14px}
+.pill{border:1px solid var(--border);border-radius:30px;padding:8px 14px;font-size:12px}
+.theme-btn{background:transparent;color:var(--ink);border:1px solid var(--border);font-weight:600;padding:6px 12px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:0 0 16px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px var(--shadow)}
+.card{padding:20px}
+.card .label{font-size:13px;color:var(--muted)}
+.card .number{font-size:34px;font-weight:650;margin-top:10px}
+.card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.cards.overview .card:nth-child(4n+1){border-top:4px solid var(--accent)}
+.cards.overview .card:nth-child(4n+2){border-top:4px solid #F47B20}
+.cards.overview .card:nth-child(4n+3){border-top:4px solid var(--ok)}
+.cards.overview .card:nth-child(4n+4){border-top:4px solid var(--accent)}
+.panel{padding:22px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid2 .panel{margin-bottom:0}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
+input,select,button{font:inherit;border:1px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--input);color:var(--ink)}
+input{flex:1;min-width:180px}
+button{background:var(--accent);color:var(--on-accent);font-weight:700;cursor:pointer}
+button:disabled{opacity:.6}
+label{font-size:13px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;text-align:left}
+th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+th,td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td:last-child{font-family:monospace;font-size:12px;color:var(--muted)}
+.status{background:var(--chip);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--ink)}
+.status.running{color:var(--ok)}
+.status.completed{color:var(--done)}
+.status.pending{color:var(--warn)}
+.status.failed{color:var(--err)}
+#message{color:var(--warn);min-height:22px}
+footer{margin-top:18px;font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:8px;margin:24px 0 0;border-bottom:1px solid var(--line)}
+.tab{background:transparent;color:var(--muted);border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;padding:10px 16px;font-weight:600}
+.tab.active{color:var(--ink);background:var(--panel);border-color:var(--line);border-bottom:3px solid var(--accent)}
+.chart-axis{stroke:var(--line)}
+.chart-line{fill:none;stroke:var(--accent);stroke-width:2}
+.chart-dot{fill:var(--accent)}
+.lvl-error{color:var(--err);font-weight:600}
+.lvl-warn{color:var(--warn);font-weight:600}
+.lvl-info{color:var(--muted)}
+.bar-row{display:grid;grid-template-columns:150px 1fr 70px;gap:10px;align-items:center;margin:9px 0;font-size:14px}
+.bar-track{height:12px;background:var(--chip);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px}
+.bar-num{text-align:right;font-weight:600}
+h3{font-size:15px;margin:18px 0 8px}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td,tr.clickable:focus td{background:var(--chip)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;width:min(980px,94vw);max-height:88vh;overflow:auto;padding:22px;box-shadow:0 10px 40px var(--shadow)}
+dialog::backdrop{background:rgba(5,10,20,.55)}
+.dlg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+[hidden]{display:none!important}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(max-width:650px){.cards{grid-template-columns:repeat(2,1fr)}h1{font-size:28px}.panel{padding:14px}}
+</style></head><body><main>
+<div class="top"><div class="brand">RUN:AI / OBSERVE</div><div class="controls-top"><div class="pill">Local · Read only</div><button class="theme-btn" id="themeBtn" aria-label="Switch colour theme">Theme: Auto</button></div></div>
+<h1>Workload overview</h1>
+<p>Cluster <strong id="clusterName">…</strong> · <span id="scopeText">All projects</span> · Your workload state, in one place.</p>
+<nav class="tabs" role="tablist" aria-label="Sections"><button class="tab active" data-tab="metrics" role="tab" aria-selected="true">Metrics monitoring</button><button class="tab" data-tab="logs" role="tab" aria-selected="false">Log aggregation</button></nav>
+
+<div id="tab-metrics" role="tabpanel">
+<div class="cards overview" id="overview" style="margin-top:20px"></div>
+
+<div class="grid2">
+<section class="panel"><h2>Workloads by status</h2><p>Counts from the loaded workload records.</p><div id="statusChart" style="margin-top:10px"></div></section>
+<section class="panel"><h2>Pending workloads by pending time</h2><p>Time since each workload entered Pending.</p><div id="pendingChart" style="margin-top:10px"></div></section>
+</div>
+
+<section class="panel"><h2>Projects</h2><p>GPU quota and allocation from the project metrics, with workload counts.</p>
+<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Project</th><th>GPU quota</th><th>GPUs allocated</th><th>Running</th><th>Pending</th><th>Total workloads</th></tr></thead><tbody id="projectRows"></tbody></table></div></section>
+
+<section class="panel"><h2>GPU utilization per device</h2><p id="gpuUpdated">Waiting for GPU exporter data…</p>
+<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Node</th><th>GPU</th><th>Model</th><th>Utilization</th><th>Memory used</th><th>Pod</th></tr></thead><tbody id="gpuRows"></tbody></table></div>
+<div id="gpuMsg" class="muted" style="margin-top:10px"></div></section>
+<section class="panel"><h2>Capacity and load</h2><p id="metricsUpdated">Waiting for metrics…</p>
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:12px">
+<div class="card"><div class="label">GPU utilization · cluster · last hour</div><svg id="utilchart" viewBox="0 0 600 160" width="100%" height="160" role="img" aria-label="GPU utilization over the last hour"></svg><p id="utilnote" style="margin:6px 0 0"></p></div>
+<div class="card"><div class="label">GPU nodes by type</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>GPU type</th><th>Nodes</th><th>Ready</th><th>GPUs</th><th>Memory</th></tr></thead><tbody id="gputypes"></tbody></table></div></div>
+</div>
+<div class="card" style="margin-top:16px"><div class="label">Nodes</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Node</th><th>Status</th><th>Node pool</th><th>GPU type</th><th>GPUs</th><th>GPU memory</th></tr></thead><tbody id="gpunodes"></tbody></table></div></div>
+<div id="metricsMsg" class="muted" style="margin-top:12px"></div>
+</section>
+<section class="panel"><h2>Storage and network · <select id="scluster" aria-label="Cluster" style="font-size:14px"><option value="downstream">GPU cluster (downstream)</option><option value="upstream">Control plane (upstream)</option></select></h2><p id="storageUpdated">Waiting for storage and network data…</p>
+<div class="cards overview" id="storageCards" style="margin-top:12px"></div>
+<div class="card" style="margin-top:16px"><div class="label">Terms used here</div><div class="words" style="margin-top:10px">
+<div class="word"><b>Physical disk</b><span>A real drive on a node, such as <code>sda</code>. Disk IOPS and MB/s are measured on the drive.</span></div>
+<div class="word"><b>Volume</b><span>Storage a pod asks for, called a PersistentVolumeClaim. The pod reads and writes files in it.</span></div>
+<div class="word"><b>Stored on</b><span>Where a volume's bytes live. A local-path volume is one folder on one node. A Longhorn volume keeps a copy (replica) on each node listed.</span></div>
+<div class="word"><b>Pod disk use</b><span>Read from the container runtime per device. Writes can sit in memory before they reach the disk, so a pod's number is an estimate.</span></div>
+</div></div>
+<div class="card" style="margin-top:16px"><div class="label">Physical disks · who uses them</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Node</th><th>Disk</th><th>IOPS</th><th>MB/s</th><th>Volumes stored here</th><th>Top pods using this disk</th></tr></thead><tbody id="storageDisks"></tbody></table></div></div>
+<div class="card" style="margin-top:16px"><div class="label">Nodes · network and root filesystem</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Node</th><th>Disk IOPS</th><th>Disk MB/s</th><th>Network in MB/s</th><th>Network out MB/s</th><th>Fullest filesystem</th></tr></thead><tbody id="storageNodes"></tbody></table></div></div>
+<div class="card" style="margin-top:16px"><div class="label">Volumes (PVC) · which pod uses which volume</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Namespace</th><th>Volume claim</th><th>Storage class</th><th>Used</th><th>Capacity</th><th>Full</th><th>Used by pod</th><th>Stored on</th></tr></thead><tbody id="storageVols"></tbody></table></div></div>
+<div class="card" style="margin-top:16px"><div class="label">Top pods · volumes, disks and network</div><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Namespace</th><th>Pod</th><th>Volumes</th><th>Disks used</th><th>Disk IOPS</th><th>Disk MB/s</th><th>Network in MB/s</th><th>Network out MB/s</th></tr></thead><tbody id="storagePods"></tbody></table></div></div>
+<div id="storageMsg" class="muted" style="margin-top:12px"></div>
+</section>
+
+<section class="panel"><div class="controls"><input id="search" aria-label="Search workloads" placeholder="Search name or ID…"><select id="project" aria-label="Filter by project"><option value="">All projects</option></select><select id="phase" aria-label="Filter by status"><option value="">All statuses</option></select><label><input type="checkbox" id="auto" checked style="min-width:0"> Refresh every 30s</label><button id="refresh">Refresh</button></div>
+<div id="message" role="status" aria-live="polite">Connecting to Run:ai…</div>
+<div class="table-wrap"><table><thead><tr><th>Workload</th><th>Project</th><th>Status</th><th>ID</th></tr></thead><tbody id="rows"></tbody></table></div><p id="updated">No successful fetch yet</p></section>
+
+<section class="panel"><h2>Node availability · <select id="avlevel" aria-label="Availability source" style="font-size:14px"><option value="vm">VM level (node-exporter)</option><option value="kubernetes">Kubernetes Ready</option></select> <select id="avdays" aria-label="Window" style="font-size:14px"><option value="7">Last 7 days</option><option value="10">Last 10 days</option><option value="35" selected>Last 35 days</option><option value="90">Last 90 days</option></select></h2><p id="avUpdated">Waiting for availability data…</p>
+<div class="cards overview" id="avCards" style="margin-top:12px"></div>
+<div class="cards" id="avRings" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"></div>
+<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Node</th><th>Uptime</th><th>Downtime</th><th>No data</th><th>Reboots</th></tr></thead><tbody id="avNodes"></tbody></table></div>
+<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Node</th><th>Period (UTC)</th><th>Uptime</th><th>Downtime</th><th>No data</th><th>Reboots</th></tr></thead><tbody id="avPeriods"></tbody></table></div>
+<div id="avMsg" class="muted" style="margin-top:12px"></div></section>
+
+<section class="panel"><h2>Kubernetes · <select id="kcluster" aria-label="Cluster" style="font-size:14px"><option value="downstream">GPU cluster (downstream)</option><option value="upstream">Control plane (upstream)</option></select></h2><p id="kubeUpdated">Waiting for Kubernetes data…</p>
+<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Node</th><th>Ready</th><th>Roles</th><th>CPU</th><th>Memory</th><th>GPUs</th><th>Pods</th></tr></thead><tbody id="knodes"></tbody></table></div>
+<div class="table-wrap" id="kpodsWrap" style="margin-top:16px"><table><thead><tr><th>Workload</th><th>Pod</th><th>Node</th><th>Phase</th><th>Restarts</th><th>CPU</th><th>Memory</th><th>GPU request</th></tr></thead><tbody id="kpods"></tbody></table></div>
+<div class="table-wrap" id="ctlWrap" hidden style="margin-top:16px"><table><thead><tr><th>Namespace</th><th>Pod</th><th>Node</th><th>Phase</th><th>Restarts</th></tr></thead><tbody id="ctlPods"></tbody></table></div>
+<div id="kubeMsg" class="muted" style="margin-top:12px"></div></section>
+</div>
+
+<div id="tab-logs" role="tabpanel" hidden><section class="panel"><h2>Log aggregation · Run:ai pods</h2><p id="logsUpdated">Last hour from the GPU cluster, via the Loki gateway.</p>
+<div class="controls" style="margin-top:12px"><select id="lcluster" aria-label="Cluster"><option value="downstream">GPU cluster (downstream)</option><option value="upstream">Control plane (upstream)</option></select><input id="logq" aria-label="Search log text" placeholder="Search log text…"><select id="logns" aria-label="Namespace" style="max-width:280px"><option value="__all__">All Run:ai namespaces</option></select><button id="logrefresh">Refresh logs</button></div>
+<div class="table-wrap"><table><thead><tr><th>Namespace</th><th>Pod</th><th>Phase</th><th>Lines (last hour)</th><th>Errors</th></tr></thead><tbody id="logpods"></tbody></table></div>
+<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Time (UTC)</th><th>Pod</th><th>Level</th><th>Message</th></tr></thead><tbody id="loglines"></tbody></table></div>
+<div id="logsMsg" class="muted" style="margin-top:12px"></div></section></div>
+
+<dialog id="podDialog" aria-labelledby="podTitle">
+<div class="dlg-head"><div><h2 id="podTitle">Pod</h2><p id="podSub" class="muted">…</p></div><button class="theme-btn" id="podClose">Close</button></div>
+<div class="cards" id="podStatus" style="grid-template-columns:repeat(4,1fr);margin:14px 0 0"></div>
+<h3>Containers</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Image</th><th>State</th><th>Ready</th><th>Restarts</th><th>Requests</th><th>Limits</th></tr></thead><tbody id="podContainers"></tbody></table></div>
+<h3>Conditions</h3><div id="podConds" class="muted"></div>
+<h3>Events (latest 20)</h3><div class="table-wrap"><table><thead><tr><th>Type</th><th>Reason</th><th>Message</th><th>Count</th><th>Last seen</th></tr></thead><tbody id="podEvents"></tbody></table></div>
+<h3>Logs (last hour, up to 300 lines)</h3><div class="controls"><input id="podLogQ" aria-label="Search this pod's logs" placeholder="Search this pod's logs…"></div><div class="table-wrap"><table><thead><tr><th>Time (UTC)</th><th>Level</th><th>Message</th></tr></thead><tbody id="podLogRows"></tbody></table></div>
+<div id="podLogMsg" class="muted" style="margin-top:8px"></div><div id="podMsg" class="muted" style="margin-top:8px"></div>
+</dialog>
+<footer>Scope: every project visible to this Run:ai identity. Counts describe the records loaded from the API. The Kubernetes and log views read the GPU cluster directly.</footer>
+</main><script>
+let records=[],metrics=null,kubeData={allPods:[]},busy=false,viewCluster='downstream';
+const el=id=>document.getElementById(id);
+const SVGNS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs){const n=document.createElementNS(SVGNS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);return n}
+function addRow(tbody,cells){const tr=document.createElement('tr');for(const v of cells){const td=document.createElement('td');td.textContent=v==null?'—':v;tr.append(td)}tbody.append(tr)}
+function last(series){const pts=(series||[]).filter(p=>p.v!=null);return pts.length?pts[pts.length-1].v:null}
+function countBy(list,key){const m={};for(const x of list){const k=x[key]||'Unknown';m[k]=(m[k]||0)+1}return m}
+
+/* ---------- workloads ---------- */
+function render(){const q=el('search').value.toLowerCase(),phase=el('phase').value,project=el('project').value;const shown=records.filter(w=>(!phase||w.phase===phase)&&(!project||w.projectName===project)&&(w.name+' '+w.id).toLowerCase().includes(q));const tb=el('rows');tb.replaceChildren();for(const w of shown){const tr=document.createElement('tr');for(const key of ['name','projectName','phase','id']){const td=document.createElement('td');if(key==='phase'){const span=document.createElement('span');span.className='status '+({Running:'running',Completed:'completed',Pending:'pending',Failed:'failed'}[w.phase]||'');span.textContent=w.phase;td.append(span)}else td.textContent=w[key];tr.append(td)}tb.append(tr)}if(!shown.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent='No matching workloads in the loaded records.';tr.append(td);tb.append(tr)}}
+function populateSelects(){const phases=[...new Set(['Pending','Running','Stopped','Completed','Failed',...records.map(w=>w.phase)])].sort();const sp=el('phase'),cur=sp.value;sp.replaceChildren(new Option('All statuses',''));phases.forEach(p=>sp.add(new Option(p,p)));if([...sp.options].some(o=>o.value===cur))sp.value=cur;const projects=[...new Set(records.map(w=>w.projectName))].sort();const spr=el('project'),curp=spr.value;spr.replaceChildren(new Option('All projects',''));projects.forEach(p=>spr.add(new Option(p,p)));if([...spr.options].some(o=>o.value===curp))spr.value=curp}
+async function refresh(){if(busy)return;busy=true;el('refresh').disabled=true;try{const response=await fetch('/api/workloads',{cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load workloads');records=data.workloads;populateSelects();el('scopeText').textContent=data.scope==='all'?'All projects':'Projects: '+data.scope.join(', ');el('message').textContent='Connected · Live API response';el('updated').textContent='Last successful refresh: '+new Date(data.updatedAt).toLocaleString();render();renderOverview();renderStatus();renderProjects()}catch(e){el('message').textContent=e.message+' Previously loaded data, if any, is stale.'}finally{busy=false;el('refresh').disabled=false}}
+
+/* ---------- overview cards ---------- */
+function card(label,value,sub){return `<div class="card"><div class="label">${label}</div><div class="number">${value==null?'—':value}</div><div class="sub">${sub||''}</div></div>`}
+function renderOverview(){const s=(metrics&&metrics.sections)||{},n=s.nodes||{},w=s.workloads||{};const c=countBy(records,'phase');el('overview').innerHTML=[card('GPU nodes ready / total',(n.READY_GPU_NODES??'—')+' / '+(n.TOTAL_GPU_NODES??'—'),'from node telemetry'),card('Total GPU devices',n.TOTAL_GPUS,'free: '+(n.FREE_GPUS??'—')),card('Allocated GPU devices',n.ALLOCATED_GPUS,'in use by workloads'),card('Idle allocated GPUs',w.IDLE_ALLOCATED_GPUS,'held but not used'),card('Running workloads',c.Running||0,'all loaded projects'),card('Pending workloads',c.Pending||0,'waiting for resources'),card('Failed workloads',c.Failed||0,'need attention'),card('Loaded workloads',records.length,'Stopped '+(c.Stopped||0)+' · Completed '+(c.Completed||0))].join('')}
+
+/* ---------- bar charts ---------- */
+function barList(container,items,unit){const box=el(container);box.replaceChildren();const max=Math.max(1,...items.map(i=>i.value||0));if(!items.length){box.textContent='No data.';return}for(const it of items){const row=document.createElement('div');row.className='bar-row';const lab=document.createElement('div');lab.textContent=it.label;const track=document.createElement('div');track.className='bar-track';const fill=document.createElement('div');fill.className='bar-fill';fill.style.width=(100*(it.value||0)/max)+'%';fill.style.background=it.color;track.append(fill);const num=document.createElement('div');num.className='bar-num';num.textContent=(it.value??0)+(unit||'');row.append(lab,track,num);box.append(row)}}
+function renderStatus(){const order=[['Running','var(--ok)'],['Pending','var(--warn)'],['Failed','var(--err)'],['Completed','var(--done)'],['Stopped','var(--muted)']];const c=countBy(project(records),'phase');const items=order.map(([k,col])=>({label:k,value:c[k]||0,color:col}));const extra=Object.keys(c).filter(k=>!order.some(o=>o[0]===k)).map(k=>({label:k,value:c[k],color:'var(--muted)'}));barList('statusChart',[...items,...extra])}
+function project(list){const p=el('project').value;return p?list.filter(w=>w.projectName===p):list}
+function renderPending(){const s=(metrics&&metrics.sections)||{},buckets=(s.workloads||{}).pendingBuckets||[];const colours=['var(--ok)','var(--warn)','#F47B20','var(--err)'];barList('pendingChart',buckets.map((b,i)=>({label:b.bucket,value:b.count,color:colours[i%colours.length]})))}
+
+/* ---------- projects table ---------- */
+function renderProjects(){const s=(metrics&&metrics.sections)||{},pq=s.projectQuota||{};const names=new Set([...records.map(w=>w.projectName),...Object.keys(pq)]);const rows=[...names].sort().map(name=>{const p=pq[name]||{};const mine=records.filter(w=>w.projectName===name);const c=countBy(mine,'phase');return{name,quota:last(p.GPU_QUOTA),alloc:last(p.GPU_ALLOCATION),running:c.Running||0,pending:c.Pending||0,total:mine.length,err:p.error}}).sort((a,b)=>b.running-a.running||a.name.localeCompare(b.name));const tb=el('projectRows');tb.replaceChildren();for(const r of rows)addRow(tb,[r.name,r.err||r.quota,r.err?'—':r.alloc,r.running,r.pending,r.total]);if(!rows.length)addRow(tb,['No projects returned'])}
+
+/* ---------- metrics ---------- */
+function drawUtil(series){const svg=el('utilchart');svg.replaceChildren();const pts=(series||[]).filter(p=>p.v!=null);if(!pts.length){el('utilnote').textContent='No utilization samples returned for the last hour.';return}const max=Math.max(100,...pts.map(p=>p.v));const W=600,H=160,P=8;const xy=pts.map((p,i)=>[pts.length===1?W/2:P+i*(W-2*P)/(pts.length-1),H-P-(p.v/max)*(H-2*P)]);svg.append(svgEl('line',{x1:P,y1:H-P,x2:W-P,y2:H-P,class:'chart-axis'}));svg.append(svgEl('polyline',{points:xy.map(p=>p.join(',')).join(' '),class:'chart-line'}));for(const [x,y] of xy)svg.append(svgEl('circle',{cx:x,cy:y,r:3,class:'chart-dot'}));el('utilnote').textContent='Latest: '+pts[pts.length-1].v+' · samples: '+pts.length+' · scale 0 to '+max+' · Run:ai sampling is coarse (about every 15 minutes)'}
+function renderInventory(s){const c=s.cluster||{};if(c.name)el('clusterName').textContent=c.name+(c.version?' · v'+c.version:'');const g=s.gpuNodes||{};const types=el('gputypes'),nodes=el('gpunodes');types.replaceChildren();nodes.replaceChildren();for(const t of g.byType||[])addRow(types,[t.gpuType,t.nodes,t.readyNodes,t.gpus,t.gpuMemoryGiB==null?null:t.gpuMemoryGiB+' GiB']);if(!(g.byType||[]).length)addRow(types,['No nodes returned']);for(const n of g.nodes||[])addRow(nodes,[n.name,n.status,n.nodePool,n.gpuType,n.gpuCount,n.gpuMemoryGiB==null?null:n.gpuMemoryGiB+' GiB']);if(!(g.nodes||[]).length)addRow(nodes,['No nodes returned'])}
+function renderMetrics(m){metrics=m;const s=m.sections||{};renderInventory(s);drawUtil((s.clusterUtilization||{}).GPU_UTILIZATION);renderPending();renderOverview();renderProjects();const errs=Object.entries(m.errors||{}).map(([k,v])=>k+': '+v);el('metricsMsg').textContent=errs.length?'Some metrics unavailable · '+errs.join(' · '):'';el('metricsUpdated').textContent='Last metrics refresh: '+new Date(m.updatedAt).toLocaleString()}
+async function loadMetrics(){try{const r=await fetch('/api/metrics',{cache:'no-store'});const m=await r.json();if(!r.ok)throw Error(m.error||'Metrics unavailable');renderMetrics(m)}catch(e){el('metricsMsg').textContent='Capacity metrics unavailable: '+e.message}}
+
+/* ---------- kubernetes ---------- */
+function populateNamespaces(list){const sel=el('logns');const cur=sel.value||'__all__';const names=[...new Set(list)].sort((a,b)=>(b.startsWith('runai')-a.startsWith('runai'))||a.localeCompare(b));sel.replaceChildren(new Option('All Run:ai namespaces','__all__'));for(const n of names)sel.add(new Option(n,n));if([...sel.options].some(o=>o.value===cur))sel.value=cur}
+function renderKube(k){kubeData=k;populateNamespaces(k.namespaces||[]);el('kubeUpdated').textContent='Last Kubernetes refresh: '+new Date(k.updatedAt).toLocaleString();const nodes=el('knodes');nodes.replaceChildren();for(const n of k.nodes||[])addRow(nodes,[n.name,n.ready?'Yes':'No',n.roles.join(', ')||'—',n.cpuPct==null?n.cpuCores+' cores':n.cpuUsageCores+' / '+n.cpuCores+' cores ('+n.cpuPct+'%)',n.memPct==null?n.memGiB+' GiB':n.memUsageGiB+' / '+n.memGiB+' GiB ('+n.memPct+'%)',n.gpus?n.gpus+' × '+(n.gpuProduct||'GPU'):'0',n.pods+' / '+n.maxPods]);if(!(k.nodes||[]).length)addRow(nodes,['No node data']);const names=Object.fromEntries(records.map(w=>[w.id,w.name]));const pods=el('kpods');pods.replaceChildren();for(const p of k.pods||[])addClickRow(pods,()=>openPod(p.namespace,p.name),[names[p.workloadId]||p.workloadId.slice(0,8),p.name,p.node,p.phase,p.restarts,p.cpuUsageCores==null?'—':p.cpuUsageCores+' cores',p.memUsageMiB==null?'—':p.memUsageMiB+' MiB',p.gpuRequest]);if(!(k.pods||[]).length)addRow(pods,['No pods for Run:ai workloads']);const up=viewCluster==='upstream';el('kpodsWrap').hidden=up;el('ctlWrap').hidden=!up;if(up){const ctl=el('ctlPods');ctl.replaceChildren();const list=(k.allPods||[]).slice().sort((a,b)=>a.namespace.localeCompare(b.namespace)||a.name.localeCompare(b.name));for(const p of list)addClickRow(ctl,()=>openPod(p.namespace,p.name),[p.namespace,p.name,p.node,p.phase,p.restarts]);if(!list.length)addRow(ctl,['No pods reported'])}el('kubeMsg').textContent=Object.entries(k.errors||{}).map(([a,b])=>a+': '+b).join(' · ')}
+async function loadKube(){try{const r=await fetch('/api/kubernetes?'+new URLSearchParams({cluster:viewCluster}),{cache:'no-store'});const k=await r.json();if(!r.ok)throw Error(k.error||'Kubernetes unavailable');renderKube(k)}catch(e){el('kubeMsg').textContent='Kubernetes data unavailable: '+e.message}}
+
+/* ---------- GPU devices ---------- */
+function utilCell(pct){const td=document.createElement('td');if(pct==null){td.textContent='—';return td}const track=document.createElement('div');track.className='bar-track';track.style.width='160px';track.style.display='inline-block';track.style.verticalAlign='middle';const fill=document.createElement('div');fill.className='bar-fill';fill.style.width=Math.min(100,pct)+'%';fill.style.background='var(--accent)';track.append(fill);const label=document.createElement('span');label.style.marginLeft='10px';label.textContent=pct+'%';td.append(track,label);return td}
+async function loadGpu(){try{const r=await fetch('/api/gpu',{cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch(_){throw Error(r.status===404?'the running app.py is older than this page. Stop it (Ctrl+C) and run python3 app.py again':'unexpected server response')}if(!r.ok)throw Error(d.error||'GPU data unavailable');const tb=el('gpuRows');tb.replaceChildren();for(const g of d.devices){const tr=document.createElement('tr');const used=g.fbUsedMiB==null?null:Math.round(g.fbUsedMiB)+' MiB'+(g.fbFreeMiB==null?'':' of '+Math.round(g.fbUsedMiB+g.fbFreeMiB)+' MiB');for(const v of [g.node,g.gpu,g.model]){const td=document.createElement('td');td.textContent=v==null?'—':v;tr.append(td)}tr.append(utilCell(g.utilPct));const mem=document.createElement('td');mem.textContent=used||'—';tr.append(mem);const pod=document.createElement('td');pod.textContent=g.pod?(g.namespace?g.namespace+' / ':'')+g.pod:'idle';tr.append(pod);tb.append(tr)}if(!d.devices.length)addRow(tb,['No GPU devices reported']);el('gpuUpdated').textContent='Average utilization '+(d.avgUtilPct==null?'—':d.avgUtilPct+'%')+' · refreshed '+new Date(d.updatedAt).toLocaleString();const errs=Object.entries(d.errors||{}).map(([k,v])=>k+': '+v);el('gpuMsg').textContent=errs.join(' · ')}catch(e){el('gpuMsg').textContent='GPU data unavailable: '+e.message}}
+
+/* ---------- logs ---------- */
+function renderPodTable(d,exact,ns){const want=p=>exact?p.namespace===ns:p.namespace.startsWith(ns);const map=new Map();for(const p of (kubeData.allPods||[]).filter(want))map.set(p.namespace+'/'+p.name,{namespace:p.namespace,pod:p.name,phase:p.phase,lines:0,errors:0});for(const p of d.pods){const key=p.namespace+'/'+p.pod;const row=map.get(key)||{namespace:p.namespace,pod:p.pod,phase:'not in pod list',lines:0,errors:0};row.lines=p.lines;row.errors=p.errors;map.set(key,row)}const rows=[...map.values()].sort((a,b)=>b.errors-a.errors||b.lines-a.lines||a.pod.localeCompare(b.pod));const body=el('logpods');body.replaceChildren();for(const r of rows)addClickRow(body,()=>openPod(r.namespace,r.pod),[r.namespace,r.pod,r.phase,r.lines,r.errors]);if(!rows.length)addRow(body,['No pods or log lines for this selection'])}
+async function loadLogs(){const q=el('logq').value.trim(),sel=el('logns').value||'__all__',all=sel==='__all__',ns=all?'runai':sel,exact=!all;try{const r=await fetch('/api/logs?'+new URLSearchParams({namespace:ns,q,exact:exact?'1':'0',limit:exact?1000:300,cluster:viewCluster}),{cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch(_){throw Error(r.status===404?'the running app.py is older than this page. Stop it (Ctrl+C) and run python3 app.py again':'unexpected server response')}if(!r.ok)throw Error(d.error||'Logs unavailable');el('logsUpdated').textContent='Last hour · namespace "'+(all?'all Run:ai':ns)+'" · cluster '+d.cluster+' · refreshed '+new Date(d.updatedAt).toLocaleString();renderPodTable(d,exact,ns);const lines=el('loglines');lines.replaceChildren();for(const l of d.lines.slice(0,200)){const tr=document.createElement('tr');for(const v of [l.time.replace('T',' ').replace('Z',''),l.pod,l.level,l.message]){const td=document.createElement('td');td.textContent=v==null?'—':v;if(v===l.level)td.className=l.level==='ERROR'||l.level==='FATAL'?'lvl-error':l.level==='WARN'?'lvl-warn':'lvl-info';tr.append(td)}lines.append(tr)}if(!d.lines.length)addRow(lines,['No matching lines']);el('logsMsg').textContent=''}catch(e){el('logsMsg').textContent='Logs unavailable: '+e.message}}
+let logTimer=null;function scheduleLogs(){clearTimeout(logTimer);logTimer=setTimeout(loadLogs,400)}
+
+/* ---------- pod detail ---------- */
+let currentPod=null,podLogTimer=null;
+function addClickRow(tbody,onClick,cells){const tr=document.createElement('tr');tr.className='clickable';tr.tabIndex=0;for(const v of cells){const td=document.createElement('td');td.textContent=v==null?'—':v;tr.append(td)}tr.addEventListener('click',onClick);tr.addEventListener('keydown',e=>{if(e.key==='Enter')onClick()});tbody.append(tr)}
+function fmtRes(o){const k=Object.keys(o||{});return k.length?k.map(x=>x+' '+o[x]).join(', '):'—'}
+function openPod(ns,name){currentPod={ns,name,cluster:viewCluster};el('podTitle').textContent=name;el('podSub').textContent='Namespace '+ns;el('podMsg').textContent='';el('podLogMsg').textContent='';el('podDialog').showModal();loadPodDetail();loadPodLogs()}
+async function loadPodDetail(){if(!currentPod)return;const {ns,name}=currentPod;try{const r=await fetch('/api/pod?'+new URLSearchParams({namespace:ns,name,cluster:currentPod.cluster}),{cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch(_){throw Error(r.status===404?'the running app.py is older than this page. Stop it (Ctrl+C) and run python3 app.py again':'unexpected server response')}if(!r.ok)throw Error(d.error||'Pod details unavailable');renderPod(d)}catch(e){el('podMsg').textContent='Pod details unavailable: '+e.message}}
+function renderPod(d){el('podSub').textContent='Namespace '+d.namespace+' · node '+(d.node||'—')+' · phase '+(d.phase||'—');const cards=[['Phase',d.phase],['Restarts',d.restarts],['Node',d.node],['Started',d.startTime?new Date(d.startTime).toLocaleString():null]];el('podStatus').replaceChildren(...cards.map(([label,v])=>{const c=document.createElement('div');c.className='card';const a=document.createElement('div');a.className='label';a.textContent=label;const b=document.createElement('div');b.className='number';b.style.fontSize='20px';b.textContent=v==null?'—':v;c.append(a,b);return c}));const cont=el('podContainers');cont.replaceChildren();for(const c of d.containers||[])addRow(cont,[c.name,c.image,c.state+(c.reason?' ('+c.reason+')':''),c.ready?'Yes':'No',c.restarts,fmtRes(c.requests),fmtRes(c.limits)]);if(!(d.containers||[]).length)addRow(cont,['No containers']);const conds=el('podConds');conds.replaceChildren();for(const c of d.conditions||[]){const row=document.createElement('div');row.textContent=c.type+': '+c.status+(c.reason?' ('+c.reason+')':'');conds.append(row)}if(!(d.conditions||[]).length)conds.textContent='No conditions reported.';const ev=el('podEvents');ev.replaceChildren();for(const e of d.events||[])addRow(ev,[e.type,e.reason,e.message,e.count,e.last?new Date(e.last).toLocaleString():null]);if(!(d.events||[]).length)addRow(ev,['No recent events']);el('podMsg').textContent=d.eventsError?'Events unavailable: '+d.eventsError:''}
+async function loadPodLogs(){if(!currentPod)return;const {ns,name}=currentPod;const q=el('podLogQ').value.trim();try{const r=await fetch('/api/logs?'+new URLSearchParams({namespace:ns,pod:name,exact:'1',q,limit:300,cluster:currentPod.cluster}),{cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch(_){throw Error('unexpected server response')}if(!r.ok)throw Error(d.error||'Logs unavailable');const tb=el('podLogRows');tb.replaceChildren();if(!d.lines.length)addRow(tb,['No log lines for this pod in the last hour']);for(const l of d.lines){const tr=document.createElement('tr');for(const v of [l.time.replace('T',' ').replace('Z',''),l.level,l.message]){const td=document.createElement('td');td.textContent=v;if(v===l.level)td.className=l.level==='ERROR'||l.level==='FATAL'?'lvl-error':l.level==='WARN'?'lvl-warn':'lvl-info';tr.append(td)}tb.append(tr)}el('podLogMsg').textContent=''}catch(e){el('podLogMsg').textContent='Logs unavailable: '+e.message}}
+el('podClose').addEventListener('click',()=>el('podDialog').close());
+el('podLogQ').addEventListener('input',()=>{clearTimeout(podLogTimer);podLogTimer=setTimeout(loadPodLogs,400)});
+
+function setCluster(v){viewCluster=v;el('kcluster').value=v;el('lcluster').value=v;el('scluster').value=v;el('kubeMsg').textContent='';loadKube();loadStorage();loadAvailability();if(!el('tab-logs').hidden)loadLogs()}
+function renderStorage(d){el('storageUpdated').textContent='Last storage refresh: '+new Date(d.updatedAt).toLocaleString()+' · '+d.window+' · cluster '+(viewCluster==='upstream'?'control plane':'GPU cluster');const c=d.cluster||{};el('storageCards').innerHTML=[card('Disk IOPS',c.diskIops,'read + write, all disks'),card('Disk throughput',c.diskMBps==null?null:c.diskMBps+' MB/s','read + write, all disks'),card('Network in',c.netInMBps==null?null:c.netInMBps+' MB/s','received, all nodes'),card('Network out',c.netOutMBps==null?null:c.netOutMBps+' MB/s','sent, all nodes'),card('Volumes used',c.volUsedGiB==null?null:c.volUsedGiB+' GiB','of '+(c.volCapGiB==null?'—':c.volCapGiB)+' GiB capacity')].join('');const db=el('storageDisks');db.replaceChildren();for(const x of d.disks||[])addRow(db,[x.node,x.disk,x.diskIops,x.diskMBps,(x.volumes||[]).join(', ')||'—',(x.pods||[]).map(p=>p.pod+(p.diskMBps==null?'':' ('+p.diskMBps+' MB/s)')).join(', ')||'—']);if(!(d.disks||[]).length)addRow(db,['No disk metrics returned']);const nb=el('storageNodes');nb.replaceChildren();for(const n of d.nodes||[]){const tr=document.createElement('tr');for(const v of [n.name,n.diskIops,n.diskMBps,n.netInMBps,n.netOutMBps]){const td=document.createElement('td');td.textContent=v==null?'—':v;tr.append(td)}tr.append(utilCell(n.fsFullPct));nb.append(tr)}if(!(d.nodes||[]).length)addRow(nb,['No node metrics returned']);const vb=el('storageVols');vb.replaceChildren();for(const v of d.volumes||[]){const tr=document.createElement('tr');const stored=(v.backing||[]).map(b=>b.node+' · '+(b.disk||'disk not resolved')+(b.mount?' (mount '+b.mount+')':'')).join('; ')||'—';const cells=[v.namespace,v.claim,v.storageClass,v.usedGiB==null?null:v.usedGiB+' GiB',v.capacityGiB==null?null:v.capacityGiB+' GiB'];for(const x of cells){const td=document.createElement('td');td.textContent=x==null?'—':x;tr.append(td)}tr.append(utilCell(v.fullPct));for(const x of [(v.pods||[]).join(', ')||'—',stored]){const td=document.createElement('td');td.textContent=x;tr.append(td)}vb.append(tr)}if(!(d.volumes||[]).length)addRow(vb,['No volume metrics returned']);if((d.volumeCount||0)>(d.volumes||[]).length)addRow(vb,['Showing '+(d.volumes||[]).length+' of '+d.volumeCount+' volumes']);const pb=el('storagePods');pb.replaceChildren();for(const p of d.pods||[])addRow(pb,[p.namespace,p.pod,(p.volumes||[]).join(', ')||'—',(p.devices||[]).join(', ')||'—',p.diskIops,p.diskMBps,p.netInMBps,p.netOutMBps]);if(!(d.pods||[]).length)addRow(pb,['No pod metrics returned']);el('storageMsg').textContent=Object.values(d.errors||{}).join(' · ')}
+async function loadStorage(){try{const r=await fetch('/api/storage?'+new URLSearchParams({cluster:viewCluster}),{cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch(_){throw Error(r.status===404?'the running app.py is older than this page. Stop it (Ctrl+C) and run python3 app.py again':'unexpected server response')}if(!r.ok)throw Error(d.error||'Storage unavailable');renderStorage(d)}catch(e){el('storageMsg').textContent='Storage data unavailable: '+e.message}}
+/* ---------- node availability ---------- */
+function fmtDuration(s){if(s==null)return '—';const h=Math.floor(s/3600),m=Math.round((s%3600)/60);return h+' h '+m+' m'}
+function renderAvailability(d){
+  const nodes=d.nodes||[];
+  el('avUpdated').textContent='Last availability refresh: '+new Date(d.updatedAt).toLocaleString()+' · '+(d.level==='vm'?'VM level':'Kubernetes Ready')+' · last '+d.window.days+' days · cluster '+(viewCluster==='upstream'?'control plane':'GPU cluster');
+  const pcts=nodes.map(n=>n.uptimePct).filter(p=>p!=null);
+  const avg=pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length*100)/100:null;
+  const reboots=nodes.reduce((a,n)=>a+(n.reboots||0),0);
+  el('avCards').innerHTML=[card('Average uptime',avg==null?null:avg+'%','across '+nodes.length+' nodes'),card('Reboots',reboots,'detected in the window'),card('Window',d.window.days+' days',d.window.start.slice(0,10)+' to '+d.window.end.slice(0,10))].join('');
+  el('avRings').replaceChildren(...nodes.map(drawRing));
+  const tb=el('avNodes');tb.replaceChildren();
+  for(const n of nodes)addRow(tb,[n.node,n.uptimePct==null?null:n.uptimePct+'%',fmtDuration(n.downtimeSeconds),fmtDuration(n.noDataSeconds),n.reboots]);
+  if(!nodes.length)addRow(tb,['No node data returned']);
+  const pb=el('avPeriods');pb.replaceChildren();
+  for(const n of nodes)for(const [grain,label] of [['week','Week of '],['month','Month of ']])for(const p of (n[grain]||[]))
+    addRow(pb,[n.node,label+p.start.slice(0,10)+(p.partial?' (partial)':''),p.uptimePct==null?null:p.uptimePct+'%',fmtDuration(p.downtimeSeconds),fmtDuration(p.noDataSeconds),p.reboots]);
+  if(!pb.children.length)addRow(pb,['No periods in the window']);
+  el('avMsg').textContent=[d.warning,...Object.entries(d.errors||{}).map(([k,v])=>k+': '+v)].filter(Boolean).join(' · ');
+}
+/* One ring per node: green = uptime, red = downtime, grey track = no data. Arcs are shares of the whole window. */
+function drawRing(n){
+  const R=50,C=2*Math.PI*R,total=(n.uptimeSeconds||0)+(n.downtimeSeconds||0)+(n.noDataSeconds||0);
+  const upLen=total?(n.uptimeSeconds||0)/total*C:0, downLen=total?(n.downtimeSeconds||0)/total*C:0;
+  const pct=n.uptimePct==null?'—':n.uptimePct+'%';
+  const svg=svgEl('svg',{viewBox:'0 0 120 120',width:'120',height:'120',role:'img','aria-label':n.node+' uptime '+pct});
+  const arc=(len,offset,colour)=>svgEl('circle',{cx:60,cy:60,r:R,fill:'none','stroke-width':12,'stroke-dasharray':len+' '+C,'stroke-dashoffset':-offset,transform:'rotate(-90 60 60)',style:'stroke:'+colour});
+  svg.append(svgEl('circle',{cx:60,cy:60,r:R,fill:'none','stroke-width':12,style:'stroke:var(--line)'}));
+  if(total){svg.append(arc(upLen,0,'var(--ok)'));svg.append(arc(downLen,upLen,'var(--err)'))}
+  const label=svgEl('text',{x:60,y:60,'text-anchor':'middle','dominant-baseline':'middle',style:'fill:var(--ink);font-size:20px;font-weight:700'});
+  label.textContent=pct;svg.append(label);
+  const box=document.createElement('div');box.className='card';box.style.textAlign='center';
+  const name=document.createElement('div');name.className='label';name.textContent=n.node;
+  const sub=document.createElement('div');sub.className='sub';
+  sub.textContent='down '+fmtDuration(n.downtimeSeconds)+' · no data '+fmtDuration(n.noDataSeconds)+' · reboots '+(n.reboots||0);
+  box.append(name,svg,sub);return box;
+}
+async function loadAvailability(){
+  try{
+    const r=await fetch('/api/availability?'+new URLSearchParams({days:el('avdays').value,level:el('avlevel').value,cluster:viewCluster}),{cache:'no-store'});
+    const t=await r.text();let d;
+    try{d=JSON.parse(t)}catch(_){throw Error(r.status===404?'the running app is older than this page. Stop it (Ctrl+C) and start it again':'unexpected server response')}
+    if(!r.ok||d.error)throw Error(d.error||'Availability unavailable');
+    renderAvailability(d);
+  }catch(e){el('avMsg').textContent='Availability unavailable: '+e.message}
+}
+
+/* ---------- tabs and theme ---------- */
+function showTab(name){if(name==='logs')loadLogs();document.querySelectorAll('.tab').forEach(b=>{const on=b.dataset.tab===name;b.classList.toggle('active',on);b.setAttribute('aria-selected',on)});el('tab-metrics').hidden=name!=='metrics';el('tab-logs').hidden=name!=='logs'}
+const THEMES=['auto','light','dark'];
+function applyTheme(t){if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);el('themeBtn').textContent='Theme: '+t[0].toUpperCase()+t.slice(1)}
+let themeChoice='auto';try{themeChoice=localStorage.getItem('theme')||'auto'}catch(_){}
+if(!THEMES.includes(themeChoice))themeChoice='auto';
+applyTheme(themeChoice);
+el('themeBtn').addEventListener('click',()=>{themeChoice=THEMES[(THEMES.indexOf(themeChoice)+1)%THEMES.length];try{localStorage.setItem('theme',themeChoice)}catch(_){}applyTheme(themeChoice)});
+
+/* ---------- wiring ---------- */
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+el('search').addEventListener('input',render);
+el('phase').addEventListener('change',render);
+el('project').addEventListener('change',()=>{render();renderStatus()});
+el('refresh').addEventListener('click',refresh);el('kcluster').addEventListener('change',e=>setCluster(e.target.value));el('lcluster').addEventListener('change',e=>setCluster(e.target.value));el('scluster').addEventListener('change',e=>setCluster(e.target.value));
+el('logq').addEventListener('input',scheduleLogs);el('logns').addEventListener('change',scheduleLogs);el('logrefresh').addEventListener('click',loadLogs);
+el('avlevel').addEventListener('change',loadAvailability);el('avdays').addEventListener('change',loadAvailability);
+setInterval(()=>{if(el('auto').checked){refresh();loadMetrics();loadKube();loadGpu();loadStorage();loadAvailability();if(!el('tab-logs').hidden)loadLogs();if(el('podDialog').open){loadPodDetail();loadPodLogs()}}},30000);
+refresh();loadMetrics();loadKube();loadGpu();loadStorage();loadAvailability();
+</script></body></html>
