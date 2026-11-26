@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runai-dashboard
+  namespace: runai-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runai-dashboard
+  template:
+    metadata:
+      labels:
+        app: runai-dashboard
+    spec:
+      serviceAccountName: runai-dashboard
+      containers:
+        - name: dashboard
+          image: aimocont2020/dashboard-runai:latest
+          ports:
+            - containerPort: 8088
+          env:
+            - name: BIND_HOST
+              value: "0.0.0.0"
+            # Matches the Service name/namespace below, so requests routed through it pass
+            # the app's Host-header check.
+            - name: ALLOWED_HOSTS
+              value: "runai-dashboard.runai-dashboard.svc:8088,runai-dashboard.runai-dashboard.svc.cluster.local:8088,dashboard.176.57.189.45.sslip.io"
+          envFrom:
+            - secretRef:
+                name: runai-dashboard-credentials
+          volumeMounts:
+            - name: upstream-kubeconfig
+              mountPath: /secrets/upstream
+              readOnly: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # httpHeaders sets an explicit Host so the probe passes the app's Host-header check
+          # (the kubelet otherwise sends the pod IP, which is never in ALLOWED_HOSTS).
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8088
+              httpHeaders:
+                - name: Host
+                  value: "runai-dashboard.runai-dashboard.svc:8088"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8088
+              httpHeaders:
+                - name: Host
+                  value: "runai-dashboard.runai-dashboard.svc:8088"
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: upstream-kubeconfig
+          secret:
+            secretName: runai-dashboard-upstream-kubeconfig
+            optional: true # app still works (minus upstream panels) if this isn't created yet

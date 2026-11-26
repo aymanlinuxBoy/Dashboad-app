@@ -1,0 +1,53 @@
+# Hand this file to whoever administers the UPSTREAM (control-plane/logging) cluster.
+# It is self-contained: it creates its own namespace, ServiceAccount, ClusterRole and binding
+# there. The resulting ServiceAccount's token is used to build the kubeconfig that goes into
+# this app's "upstream kubeconfig" Secret (see 05-secret-upstream-kubeconfig.example.yaml).
+#
+# After applying, mint a kubeconfig for it, e.g.:
+#   kubectl --context upstream -n runai-dashboard create token runai-dashboard --duration=8760h
+# and build a kubeconfig around that token and the upstream API server/CA (or use a short-lived
+# token refreshed via a CronJob if your cluster's token lifetime policy requires it). The
+# resulting kubeconfig's context MUST be named to match this app's CONTROL_CONTEXT / LOKI_CONTEXT
+# (default "upstream").
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: runai-dashboard
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runai-dashboard
+  namespace: runai-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: runai-dashboard-read
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "events", "namespaces",
+                "persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/proxy", "services/proxy"]
+    verbs: ["get"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["prometheuses"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: runai-dashboard-read
+subjects:
+  - kind: ServiceAccount
+    name: runai-dashboard
+    namespace: runai-dashboard
+roleRef:
+  kind: ClusterRole
+  name: runai-dashboard-read
+  apiGroup: rbac.authorization.k8s.io

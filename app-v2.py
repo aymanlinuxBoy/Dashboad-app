@@ -19,15 +19,15 @@ from urllib.error import HTTPError, URLError
 BASE = 'https://runai-poc-integrant.duckdns.org'
 
 class Runai:
-    def __init__(self, client_id, secret):
-        self.client_id, self.secret = client_id, secret
+    def __init__(self, client_id, secret, base_url=BASE):
+        self.client_id, self.secret, self.base = client_id, secret, base_url
         self.token, self.until = None, 0
         self._ids, self._cache = {}, None
 
     def authenticate(self):
         body = urlencode({'grant_type': 'client_credentials', 'client_id': self.client_id,
                           'client_secret': self.secret}).encode()
-        req = Request(BASE + '/api/v2/token', data=body,
+        req = Request(self.base + '/api/v2/token', data=body,
                       headers={'Content-Type': 'application/x-www-form-urlencoded'})
         with urlopen(req, timeout=20) as r:
             data = json.load(r)
@@ -38,7 +38,7 @@ class Runai:
         for attempt in range(2):
             if not self.token or time.monotonic() >= self.until:
                 self.authenticate()
-            req = Request(BASE + path,
+            req = Request(self.base + path,
                           headers={'Authorization': 'Bearer ' + self.token, 'Accept': 'application/json'})
             try:
                 with urlopen(req, timeout=20) as r:
@@ -1104,42 +1104,63 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+def _env_list(name):
+    raw = os.environ.get(name)
+    return [v.strip() for v in raw.split(',') if v.strip()] if raw else None
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--port', type=int, default=8088)
+    parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8088)))
+    parser.add_argument('--bind-host', default=os.environ.get('BIND_HOST', '127.0.0.1'),
+                        help="address to bind the server to (default: 127.0.0.1; use 0.0.0.0 "
+                             "when running in a container/pod)")
+    parser.add_argument('--allowed-host', action='append', dest='allowed_hosts',
+                        default=_env_list('ALLOWED_HOSTS'),
+                        help='additional "host:port" value(s) accepted in the Host header '
+                             '(repeatable; env ALLOWED_HOSTS is comma-separated). The loopback '
+                             'address is always accepted in addition to these.')
     parser.add_argument('--project', action='append', dest='projects',
-                        help='Run:ai project name to show (repeatable). Default: all projects')
-    parser.add_argument('--kube-context', default='downstream',
+                        default=_env_list('RUNAI_PROJECTS'),
+                        help='Run:ai project name to show (repeatable; env RUNAI_PROJECTS is '
+                             'comma-separated). Default: all projects')
+    parser.add_argument('--runai-base-url', default=os.environ.get('RUNAI_BASE_URL', BASE),
+                        help='Run:ai API base URL')
+    parser.add_argument('--kube-context', default=os.environ.get('KUBE_CONTEXT', 'downstream'),
                         help='kubeconfig context for the Run:ai GPU cluster (default: downstream)')
-    parser.add_argument('--kubectl', default=DEFAULT_KUBECTL, help='path to kubectl')
-    parser.add_argument('--loki-context', default='upstream',
+    parser.add_argument('--kubectl', default=os.environ.get('KUBECTL', DEFAULT_KUBECTL), help='path to kubectl')
+    parser.add_argument('--loki-context', default=os.environ.get('LOKI_CONTEXT', 'upstream'),
                         help='kubeconfig context whose cluster hosts the Loki gateway (default: upstream)')
-    parser.add_argument('--loki-cluster', default='downstream',
+    parser.add_argument('--loki-cluster', default=os.environ.get('LOKI_CLUSTER', 'downstream'),
                         help='Loki cluster label for the GPU cluster logs (default: downstream)')
-    parser.add_argument('--control-context', default='upstream',
+    parser.add_argument('--control-context', default=os.environ.get('CONTROL_CONTEXT', 'upstream'),
                         help='kubeconfig context for the control-plane cluster (default: upstream)')
-    parser.add_argument('--control-loki-cluster', default='local',
+    parser.add_argument('--control-loki-cluster', default=os.environ.get('CONTROL_LOKI_CLUSTER', 'local'),
                         help='Loki cluster label for the control-plane logs (default: local)')
     args = parser.parse_args()
     projects = set(args.projects) if args.projects else None  # None = every project
-    client = input('Run:ai client ID: ').strip()
+    client = os.environ.get('RUNAI_CLIENT_ID')
+    secret = os.environ.get('RUNAI_CLIENT_SECRET')
+    if not client:
+        client = input('Run:ai client ID: ').strip()
     if not client:
         raise SystemExit('A client ID is required.')
-    secret = getpass.getpass('Run:ai client secret (hidden): ')
+    if not secret:
+        secret = getpass.getpass('Run:ai client secret (hidden): ')
     if not secret:
         raise SystemExit('A client secret is required.')
     # One thread per request, so a slow log query does not hold up the other panels.
     # daemon_threads lets Ctrl+C stop the server without waiting for requests in flight.
     ThreadingHTTPServer.daemon_threads = True
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
-    server.api = Runai(client, secret)
+    server = ThreadingHTTPServer((args.bind_host, args.port), Handler)
+    server.api = Runai(client, secret, args.runai_base_url)
     server.projects = projects
     server.kube = Kube(args.kubectl, args.kube_context)
     server.kube_views = {'downstream': server.kube, 'upstream': Kube(args.kubectl, args.control_context)}
     server.loki_cluster = {'downstream': args.loki_cluster, 'upstream': args.control_loki_cluster}
     server.loki = Loki(args.kubectl, args.loki_context, args.loki_cluster)
-    server.allowed_hosts = {'127.0.0.1:%d' % args.port, 'localhost:%d' % args.port}
-    print('Open http://127.0.0.1:%d — stop with Ctrl+C' % args.port)
+    server.allowed_hosts = {'127.0.0.1:%d' % args.port, 'localhost:%d' % args.port, *(args.allowed_hosts or [])}
+    print('Open http://%s:%d — stop with Ctrl+C' % (args.bind_host, args.port))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

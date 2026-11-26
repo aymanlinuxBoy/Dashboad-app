@@ -1,0 +1,2 @@
+deploy/k8s/secret-runai.yaml
+deploy/k8s/secret-upstream-kubeconfig.yaml
